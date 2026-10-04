@@ -11,7 +11,7 @@ Below is the exact mapping of which filter to apply to each packet capture file:
 | Capture File | Purpose / What It Proves | Display Filter to Apply | Ready-to-Run `tshark` Command |
 |---|---|---|---|
 | **`nginx_backend_load_balancing.pcapng`** | Proves nginx load balancing between Backend A & B | `tcp.port == 3001 || tcp.port == 3002` | `tshark -r 07_Wireshark/nginx_backend_load_balancing.pcapng -Y "tcp.port == 3001 \|\| tcp.port == 3002"` |
-| **`tls12_handshake_and_traffic.pcapng`** | Proves full TLS 1.2 handshake and encrypted data | `tls \|\| tcp.port == 8443` | `tshark -r 07_Wireshark/tls12_handshake_and_traffic.pcapng -Y "tls \|\| tcp.port == 8443"` |
+| **`tlsv1.2_handshake_and_traffic.pcapng`** | Proves full TLS 1.2 handshake and encrypted data | `tls \|\| tcp.port == 8443` | `tshark -r 07_Wireshark/tlsv1.2_handshake_and_traffic.pcapng -Y "tls \|\| tcp.port == 8443"` |
 | **`tls_certificate_exchange.pcapng`** | Isolates server certificate transmission (`app.teamabs.test`) | `tls.handshake.type == 11` | `tshark -r 07_Wireshark/tls_certificate_exchange.pcapng -Y "tls.handshake.type == 11"` |
 | **`tcp_tls_handshake.pcapng`** | Layer 4 TCP 3-way handshake before TLS tunnel | `tcp.flags.syn == 1 \|\| tls.handshake` | `tshark -r 07_Wireshark/tcp_tls_handshake.pcapng -Y "tcp.flags.syn == 1 \|\| tls.handshake"` |
 
@@ -24,7 +24,7 @@ Below is the exact mapping of which filter to apply to each packet capture file:
      - Inspect HTTP request/response payloads: `http.request || http.response`
      - Track alternating server IP destinations: `ip.dst == 10.7.21.236 || ip.dst == 10.7.16.91`
 
-2. **`tls12_handshake_and_traffic.pcapng`**:
+2. **`tlsv1.2_handshake_and_traffic.pcapng`**:
    - **What it captures:** Complete TLS 1.2 encrypted connection on port `8443` including `Client Hello`, `Server Hello`, `Certificate`, `Server Key Exchange`, and opaque `Application Data`.
    - **Filters to run:**
      - Overall TLS conversation: `tls`
