@@ -1,0 +1,84 @@
+================================================================================
+TASK F: HTTP CACHING BEHAVIOR & VERIFICATION
+TeamABS - Computer Networks Project
+================================================================================
+
+1. DIRECT BACKEND VERIFICATION (Localhost / Direct Ports)
+--------------------------------------------------------------------------------
+
+[Backend A - Mac 01 (10.7.21.236:3001)]
+Command:
+curl -i http://localhost:3001/api/status | grep -Ei 'HTTP/|Cache-Control:|ETag:'
+
+Output:
+HTTP/1.0 200 OK
+Server: BaseHTTP/0.6 Python/3.13.6
+Cache-Control: max-age=60
+ETag: "teamabs-v1"
+
+--------------------------------------------------------------------------------
+
+[Backend B - Mac 03 (10.7.16.91:3002)]
+Command:
+curl -i http://localhost:3002/api/status | grep -Ei 'HTTP/|Cache-Control:|ETag:'
+
+Output:
+HTTP/1.0 200 OK
+Server: BaseHTTP/0.6 Python/3.14.7
+Cache-Control: max-age=60
+ETag: "teamabs-v1"
+
+
+2. PROXIED REQUEST VIA NGINX HTTPS EDGE (Port 8443)
+--------------------------------------------------------------------------------
+Command:
+curl -i https://app.teamabs.test:8443/api/status
+
+Output:
+HTTP/1.1 200 OK
+Server: nginx/1.31.6
+Date: Wed, 30 Sep 2026 17:47:38 GMT
+Content-Type: application/json
+Transfer-Encoding: chunked
+Connection: keep-alive
+X-Backend: A
+Cache-Control: max-age=60
+ETag: "teamabs-v1"
+
+{"backend": "A", "status": "healthy", "server": "Mac 1", "port": 3001}
+
+
+3. CONDITIONAL REQUEST (If-None-Match Validation)
+--------------------------------------------------------------------------------
+Command:
+curl -i \
+  -H 'If-None-Match: "teamabs-v1"' \
+  https://app.teamabs.test:8443/api/status
+
+Output:
+HTTP/1.1 304 Not Modified
+Server: nginx/1.31.6
+Date: Wed, 30 Sep 2026 17:51:09 GMT
+Connection: keep-alive
+ETag: "teamabs-v1"
+Cache-Control: max-age=60
+
+
+4. EXPLANATION: FRESH CACHE HIT vs CONDITIONAL REQUEST vs FULL REQUEST
+--------------------------------------------------------------------------------
+- Fresh Cache Hit:
+  The client uses a locally cached response that is still considered fresh according
+  to its cache policy (e.g., within the `max-age=60` window defined by the
+  `Cache-Control` header). No network request is transmitted to the origin server.
+
+- Conditional Request:
+  When cached content may be stale or requires validation, the client sends a
+  conditional request containing the cached validator (e.g., `If-None-Match: "teamabs-v1"`).
+  If the representation on the server has not changed, the server returns an
+  `HTTP 304 Not Modified` status with no message body, saving bandwidth and
+  server compute while confirming freshness.
+
+- Full New Request:
+  The client sends an unconditional request (no cache validator or a mismatched
+  validator). The server processes the request and returns a complete `HTTP 200 OK`
+  response including all response headers and the full payload body.

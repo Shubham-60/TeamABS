@@ -1,0 +1,18 @@
+[req]
+distinguished_name = req_distinguished_name
+x509_extensions = v3_req
+prompt = no
+
+[req_distinguished_name]
+C = IN
+ST = Haryana
+L = Sonepat
+O = TeamABS
+OU = CN Project
+CN = app.teamabs.test
+
+[v3_req]
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = app.teamabs.test
