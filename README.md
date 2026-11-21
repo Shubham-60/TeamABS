@@ -139,7 +139,10 @@ TeamABS/
 │   └── README.md                       # Comprehensive architecture documentation
 │
 ├── 02_DNS/                             # DNS configurations and resolution evidence
-│   ├── Phase2/                         # Phase 2 Redundant DNS configurations (.gitkeep)
+│   ├── Phase2/                         # Phase 2 Redundant DNS configurations
+│   │   ├── primary-dnsmasq.conf        # Primary DNS resolver config (Mac 01)
+│   │   ├── backup-dnsmasq.conf         # Backup DNS resolver config (Mac 03)
+│   │   └── README.md                   # Phase 2 DNS documentation
 │   ├── dnsmasq.conf                    # Historical Phase 1 single-resolver configuration
 │   └── README.md                       # Historical Phase 1 DNS documentation
 │
@@ -201,6 +204,9 @@ TeamABS/
 
 - **Phase 1 Formal PDF Report:** [`09_Documentation/documentation.pdf`](09_Documentation/documentation.pdf)
 - **Phase 2 Network Architecture:** [`01_Architecture/Phase2_Topology.png`](01_Architecture/Phase2_Topology.png)
+- **Phase 2 Primary DNS Config:** [`02_DNS/Phase2/primary-dnsmasq.conf`](02_DNS/Phase2/primary-dnsmasq.conf)
+- **Phase 2 Backup DNS Config:** [`02_DNS/Phase2/backup-dnsmasq.conf`](02_DNS/Phase2/backup-dnsmasq.conf)
+- **Phase 2 DNS Architecture & Failover Guide:** [`02_DNS/Phase2/README.md`](02_DNS/Phase2/README.md)
 - **Phase 1 Historical Topology:** [`01_Architecture/Topology.png`](01_Architecture/Topology.png)
 - **Phase 1 Failure Demonstrations:** [`08_Failures/README.md`](08_Failures/README.md)
 - **Phase 1 Wireshark Captures:** [`07_Wireshark/README.md`](07_Wireshark/README.md)

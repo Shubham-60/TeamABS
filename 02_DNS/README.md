@@ -1,6 +1,10 @@
 # Task B: Private DNS Infrastructure
 
-This directory contains the DNS configuration and resolution verification records for **Phase 1**.
+This directory contains the DNS configuration and resolution verification records for **Phase 1**, as well as the redundant high-availability DNS infrastructure for **Phase 2**.
+
+> [!TIP]
+> **Phase 2 Redundant DNS Infrastructure:**
+> For the Phase 2 primary and backup DNS resolver configurations, 30-second TTL policy, and failover testing procedures (Extensions A & B), see [`02_DNS/Phase2/README.md`](Phase2/README.md).
 
 ---
 
