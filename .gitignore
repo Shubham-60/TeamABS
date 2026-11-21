@@ -1,4 +1,26 @@
+# TeamABS Git Ignore Configuration
+# Operating System files
+.DS_Store
+
+# Python bytecode and caches
 __pycache__/
 *.py[cod]
 *$py.class
-.DS_Store
+*.pyc
+*.pyo
+
+# Environment variables & local secrets
+.env
+.env.*
+
+# Private cryptographic keys & CSRs (RFC 5280 / PKI security)
+# Note: Public certificates (*.crt) remain tracked in documentation/config directories.
+*.key
+*.pem
+*.p12
+*.pfx
+*.csr
+
+# Diagnostic and build temporary files
+*.tmp
+/tmp/

@@ -1,37 +1,39 @@
-# Computer Networks Project Documentation (Phase 1)
+# TeamABS Project Documentation Index
 
-**Team Name:** TeamABS  
-**Team Members & Roles:**
-- **Shubham Aggarwal** (Mac 01): Private DNS Server (`dnsmasq`), Test Client, Backend Service A
-- **Atharva Sharma** (Mac 02): Nginx Edge, Reverse Proxy, Load Balancer, TLS/HTTPS Termination
-- **Bhavya Punj** (Mac 03): Backend Service B
+This directory contains the formal technical documentation, engineering reports, and specification indices for the TeamABS Computer Networks project across both Phase 1 and Phase 2.
 
 ---
 
-## Executive Summary & Deliverables
+## Deliverables & Documentation Index
 
-This repository implements an end-to-end distributed system across three physical Mac systems on a private local network (`10.7.0.0/19`).
-
-The implementation covers all phases specified in the project specification:
-1. **Task A: Private LAN Establishment** — Static network configuration, ARP resolution, and inter-node reachability.
-2. **Task B: Private DNS Infrastructure** — `dnsmasq` deployment on Mac 01 resolving `app.teamabs.test` and `api.teamabs.test` to the edge proxy.
-3. **Task C: Backend Microservices** — Python REST services for Backend A (Port 3001) and Backend B (Port 3002) emitting customized headers.
-4. **Task D: Edge Reverse Proxy & Load Balancing** — Nginx configuration implementing Round-Robin balancing and proxy header propagation.
-5. **Task E: Custom PKI & TLS Termination** — Private Root CA creation, SAN certificate issuance, trust store installation, and TLS 1.2 termination on port 8443.
-6. **Task F: HTTP Caching Semantics** — Implementation of `Cache-Control: max-age=60`, `ETag: "teamabs-v1"`, and conditional `304 Not Modified` handling.
-7. **Task G: Full-Stack Wireshark Protocol Verification** — Packet capture analysis across DNS (UDP 53), TCP 3-way handshake, TLS 1.2 handshake, and cleartext internal proxy traffic.
-8. **Task H: Systematic Fault-Injection Testing** — 5 controlled failure scenarios validating network isolation, directory mapping, backend redundancy, and transport port semantics.
+| Deliverable | Phase | File Format | Scope / Description | Status / Link |
+|---|---|---|---|---|
+| **Phase 1 Formal Report** | Phase 1 | PDF (36 Pages) | Original historical 36-page report covering Tasks A through H | [`documentation.pdf`](documentation.pdf) |
+| **Phase 2 Technical Report** | Phase 2 | Markdown / PDF | Comprehensive formal technical engineering report covering Extensions A through E | *Phase 2 documentation deliverable* |
 
 ---
 
-## Directory Reference Map
+## Phase 2 Report Structure Overview
 
-- [01_Architecture/](../01_Architecture/): Physical network topology diagrams and IP address inventories.
-- [02_DNS/](../02_DNS/): `dnsmasq.conf` DNS configuration and resolution setup.
-- [03_Backends/](../03_Backends/): Source code for Backend A (`backend_A/server.py`) and Backend B (`Backend_B/server.py`).
-- [04_Nginx/](../04_Nginx/): Reverse proxy and round-robin load balancer configuration (`nginx.conf`).
-- [05_TLS/](../05_TLS/): SSL configuration (`nginx_tls.conf`), SAN configuration (`san.cnf`), and certificate management commands.
-- [06_Caching/](../06_Caching/): Header logs and conditional validation outputs (`cache_headers.txt`).
-- [07_Wireshark/](../07_Wireshark/): Wireshark packet capture analysis, filter reference, and protocol flow documentation.
-- [08_Failures/](../08_Failures/): Failure injection scenarios, observations, and networking root-cause analysis.
-- [documentation.pdf](documentation.pdf): Complete 36-page formal PDF report.
+The Phase 2 engineering report is structured into 20 formal technical sections:
+
+1. **Title Page & Engineering Roles:** Inventory of nodes, IP addresses, and responsibilities for Shubham, Atharva, and Bhavya.
+2. **Abstract:** Summary of multi-tier resilience, active-passive failover, and OS caching dynamics.
+3. **Introduction:** Architectural motivations for decoupling DNS, reverse proxying, and origin microservices.
+4. **Phase 1 Architecture Summary:** Baseline establishment of private LAN, PKI, caching, and round-robin Nginx.
+5. **Phase 2 Objectives:** Fault-injection goals across Extensions A through E.
+6. **Updated Network Topology:** Comprehensive physical/logical network map, listening ports, and DNS mappings.
+7. **Team Member Responsibilities:** Detailed task distribution.
+8. **Extension A — Backup DNS Architecture & Failover:** Active-passive `dnsmasq` resolvers and client resolver ordering.
+9. **Extension B — DNS TTL and Record Modification:** 30-second TTL configuration, propagation, and client cache invalidation analysis.
+10. **Extension C — Firewall Isolation (PF):** Origin perimeter protection, anchor definitions, and the Bhavya standby edge exception.
+11. **Extension D — Backend High Availability:** Dynamic health detection (`max_fails=1 fail_timeout=5s`) and transparent rerouting.
+12. **Extension E — Edge Reverse Proxy Migration:** Standby Nginx deployment, TLS certificate mirroring, and edge failover.
+13. **Testing Methodology:** Multi-tier verification procedures across Layers 3, 4, and 7.
+14. **Test Results Matrix:** Comprehensive test status across all evaluated scenarios.
+15. **Limitations and Deviations:** Transparent documentation of client-side DNS caching behavior and topology constraints.
+16. **Troubleshooting Observations:** Practical macOS networking, PF anchor management, and Nginx error-handling insights.
+17. **Security Considerations:** Origin isolation, attack surface reduction, and TLS credential hygiene.
+18. **Learning Outcomes:** Practical insights gained in distributed network systems.
+19. **Conclusion:** Final engineering assessment of system availability and defense.
+20. **References & Evidence Index:** Direct mappings to repository configurations, evidence logs, and slide plans.
