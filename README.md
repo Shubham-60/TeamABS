@@ -156,7 +156,10 @@ TeamABS/
 │   └── README.md                       # Microservice endpoints and specifications
 │
 ├── 04_Nginx/                           # Reverse proxy and load balancing
-│   ├── Phase2/                         # Phase 2 Edge configurations (.gitkeep)
+│   ├── Phase2/                         # Phase 2 Edge configurations
+│   │   ├── primary-edge.conf           # Primary Nginx edge config (Mac 02)
+│   │   ├── standby-edge.conf           # Standby Nginx edge config (Mac 03)
+│   │   └── README.md                   # Phase 2 edge documentation
 │   ├── nginx.conf                      # Historical Phase 1 Nginx configuration
 │   └── README.md                       # Historical Phase 1 Nginx documentation
 │
@@ -207,6 +210,9 @@ TeamABS/
 - **Phase 2 Primary DNS Config:** [`02_DNS/Phase2/primary-dnsmasq.conf`](02_DNS/Phase2/primary-dnsmasq.conf)
 - **Phase 2 Backup DNS Config:** [`02_DNS/Phase2/backup-dnsmasq.conf`](02_DNS/Phase2/backup-dnsmasq.conf)
 - **Phase 2 DNS Architecture & Failover Guide:** [`02_DNS/Phase2/README.md`](02_DNS/Phase2/README.md)
+- **Phase 2 Primary Edge Config:** [`04_Nginx/Phase2/primary-edge.conf`](04_Nginx/Phase2/primary-edge.conf)
+- **Phase 2 Standby Edge Config:** [`04_Nginx/Phase2/standby-edge.conf`](04_Nginx/Phase2/standby-edge.conf)
+- **Phase 2 Edge & Failover Guide:** [`04_Nginx/Phase2/README.md`](04_Nginx/Phase2/README.md)
 - **Phase 1 Historical Topology:** [`01_Architecture/Topology.png`](01_Architecture/Topology.png)
 - **Phase 1 Failure Demonstrations:** [`08_Failures/README.md`](08_Failures/README.md)
 - **Phase 1 Wireshark Captures:** [`07_Wireshark/README.md`](07_Wireshark/README.md)

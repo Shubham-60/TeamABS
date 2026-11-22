@@ -1,6 +1,10 @@
 # Task D: Edge Reverse Proxy & Load Balancer
 
-This directory contains the Nginx reverse proxy and round-robin load balancer configuration deployed on Mac 02 (`10.7.9.208`).
+This directory contains the Nginx reverse proxy and round-robin load balancer configuration for **Phase 1**, as well as the dual-edge active-standby reverse proxy architecture for **Phase 2**.
+
+> [!TIP]
+> **Phase 2 Edge Redundancy & Health Detection:**
+> For the Phase 2 primary and standby edge configurations, dynamic upstream failover (`max_fails=1 fail_timeout=5s`), and edge migration procedures (Extensions D & E), see [`04_Nginx/Phase2/README.md`](Phase2/README.md).
 
 ---
 
