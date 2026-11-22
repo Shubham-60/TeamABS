@@ -188,7 +188,10 @@ TeamABS/
 │   ├── README.md                       # Documentation index
 │   └── documentation.pdf               # Historical 36-page Phase 1 formal PDF report
 │
-├── 10_Firewall/                        # macOS Packet Filter (PF) host isolation (.gitkeep)
+├── 10_Firewall/                        # macOS Packet Filter (PF) host isolation
+│   ├── shubham-teamabs.anchor          # PF anchor for Backend A on Mac 01
+│   ├── bhavya-teamabs.anchor           # PF anchor for Backend B on Mac 03
+│   └── README.md                       # PF configuration and testing guide
 │
 ├── 11_Phase2_Evidence/                 # Phase 2 experimental logs and capture indices
 │   ├── Extension_A_Backup_DNS/         # (.gitkeep)
@@ -213,6 +216,9 @@ TeamABS/
 - **Phase 2 Primary Edge Config:** [`04_Nginx/Phase2/primary-edge.conf`](04_Nginx/Phase2/primary-edge.conf)
 - **Phase 2 Standby Edge Config:** [`04_Nginx/Phase2/standby-edge.conf`](04_Nginx/Phase2/standby-edge.conf)
 - **Phase 2 Edge & Failover Guide:** [`04_Nginx/Phase2/README.md`](04_Nginx/Phase2/README.md)
+- **Phase 2 Firewall Rules & Guide:** [`10_Firewall/README.md`](10_Firewall/README.md)
+- **Shubham PF Anchor (Mac 01):** [`10_Firewall/shubham-teamabs.anchor`](10_Firewall/shubham-teamabs.anchor)
+- **Bhavya PF Anchor (Mac 03):** [`10_Firewall/bhavya-teamabs.anchor`](10_Firewall/bhavya-teamabs.anchor)
 - **Phase 1 Historical Topology:** [`01_Architecture/Topology.png`](01_Architecture/Topology.png)
 - **Phase 1 Failure Demonstrations:** [`08_Failures/README.md`](08_Failures/README.md)
 - **Phase 1 Wireshark Captures:** [`07_Wireshark/README.md`](07_Wireshark/README.md)

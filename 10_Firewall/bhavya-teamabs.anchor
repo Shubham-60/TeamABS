@@ -1,0 +1,12 @@
+# TeamABS PF Firewall Anchor - Bhavya's Mac (Mac 03)
+# IP: 10.7.16.91 | Interface: en0 / lo0 | Service: Backend B (Port 3002)
+# Anchor Path: /etc/pf.anchors/teamabs.anchor
+#
+# Rule 1: Allow local loopback traffic (for local Standby Nginx -> Backend B routing)
+pass in quick on lo0 inet proto tcp from any to any port 3002
+
+# Rule 2: Allow Atharva (Primary Nginx Edge) to access Backend B over LAN
+pass in quick on en0 inet proto tcp from 10.7.9.208 to 10.7.16.91 port 3002
+
+# Rule 3: Block all other incoming traffic to Backend B
+block in quick on en0 inet proto tcp from any to 10.7.16.91 port 3002

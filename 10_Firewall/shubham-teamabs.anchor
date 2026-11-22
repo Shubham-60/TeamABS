@@ -1,0 +1,15 @@
+# TeamABS PF Firewall Anchor - Shubham's Mac (Mac 01)
+# IP: 10.7.21.236 | Interface: en0 | Service: Backend A (Port 3001)
+# Anchor Path: /etc/pf.anchors/teamabs.anchor
+#
+# Rule 1: Allow Atharva (Primary Nginx Edge) to access Backend A
+pass in quick on en0 inet proto tcp from 10.7.9.208 to 10.7.21.236 port 3001
+
+# Rule 2: Allow Bhavya (Standby Nginx Edge) to access Backend A
+# CRITICAL EXCEPTION: Bhavya (Mac 03) runs the standby Nginx reverse proxy edge.
+# In order for Bhavya's standby edge to load-balance across both backends during failover
+# (Extension E), her machine must be permitted to reach Backend A on Mac 01 over the LAN.
+pass in quick on en0 inet proto tcp from 10.7.16.91 to 10.7.21.236 port 3001
+
+# Rule 3: Block all other incoming traffic to Backend A
+block in quick on en0 inet proto tcp from any to 10.7.21.236 port 3001
