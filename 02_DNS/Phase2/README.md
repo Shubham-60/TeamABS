@@ -4,45 +4,46 @@ This directory contains the Phase 2 DNS configurations establishing redundant (p
 
 ---
 
-## 1. Phase 2 DNS Topology & Node Mapping
+## 1. Phase 2 DNS Topology & Normal Node Mapping
 
 In Phase 2, DNS resolution is upgraded from a single point of failure (Phase 1) to an active-passive redundant resolver architecture distributed across two physical nodes on the private LAN (`10.7.0.0/19`):
 
-| Role | Host Node | IP Address | Port | Interface | Config File |
+| Role | Host Node | IP Address | Port | Interface | Configuration Template |
 |---|---|---|---|---|---|
-| **Primary DNS** | Mac 01 (Shubham) | `10.7.21.236` | `53` | `en0` | [`primary-dnsmasq.conf`](primary-dnsmasq.conf) |
-| **Backup DNS** | Mac 03 (Bhavya) | `10.7.16.91` | `53` | `en0` | [`backup-dnsmasq.conf`](backup-dnsmasq.conf) |
+| **Primary DNS** | Mac 01 (Shubham Aggarwal) | `10.7.21.236` | `53` | `en0` | [`primary-dnsmasq.conf`](primary-dnsmasq.conf) |
+| **Backup DNS** | Mac 03 (Bhavya Punj) | `10.7.16.91` | `53` | `en0` | [`backup-dnsmasq.conf`](backup-dnsmasq.conf) |
 
-### Restored Phase 2 DNS Records
+### Restored Normal DNS Records (Production State)
 
 ```text
-app.teamabs.test -> 10.7.16.91  (Mac 03 Standby Nginx Edge)
+app.teamabs.test -> 10.7.9.208   (Mac 02 Primary Nginx Edge)
 api.teamabs.test -> 10.7.9.208   (Mac 02 Primary Nginx Edge)
 TTL = 30 seconds
 ```
 
-### Architectural Rationale for Node Mappings
-- **Why `api.teamabs.test` points to `10.7.9.208`:** Mac 02 (Atharva) serves as the Primary Nginx Edge Gateway, executing active reverse proxying, TLS termination (`:8443`), and dynamic upstream load balancing across Backend A (`:3001`) and Backend B (`:3002`).
-- **Why `app.teamabs.test` points to `10.7.16.91`:** Mac 03 (Bhavya) hosts the Standby Nginx Edge Gateway deployed in Extension E. Routing `app.teamabs.test` to `10.7.16.91` demonstrates multi-edge deployment and active traffic redirection to the secondary physical edge node while `api.teamabs.test` continues through the primary edge.
-- **Phase 1 vs. Phase 2 Difference:** In Phase 1, both domains mapped exclusively to Mac 02 (`10.7.9.208`). The original Phase 1 single-resolver configuration is preserved separately in [`02_DNS/dnsmasq.conf`](../dnsmasq.conf).
+> [!IMPORTANT]
+> **Distinction: Normal DNS State vs. Temporary Extension E Migration State:**
+> - In normal operation across both Phase 1 and restored Phase 2, **both** `app.teamabs.test` and `api.teamabs.test` resolve to **`10.7.9.208`** (Atharva's Primary Nginx Edge).
+> - During the **Extension E Edge Migration test only**, the `app.teamabs.test` record on both resolvers was temporarily modified to point to Bhavya's Standby Edge (`10.7.16.91`). Once the migration test and polling loop completed, the record was restored to `10.7.9.208`.
+> - Both configuration templates in this directory reflect the final restored normal state.
 
 ---
 
 ## 2. Configuration Analysis & TTL Policy
 
 ### 2.1 Primary DNS Configuration ([`primary-dnsmasq.conf`](primary-dnsmasq.conf))
-- **Listen Address:** `10.7.21.236` explicitly bound to the physical Wi-Fi interface (`en0`).
+- **Listen Address:** `10.7.21.236` explicitly bound to interface `en0`.
 - **Port:** Standard UDP/TCP port `53`.
-- **Authoritative TTL (`local-ttl=30`):** Sets the Time-To-Live for local DNS answers to exactly 30 seconds.
+- **Authoritative TTL (`local-ttl=30`):** Instructs `dnsmasq` to emit an authoritative Time-To-Live of 30 seconds on custom records.
 - **Forwarders:** Upstream queries outside `teamabs.test` forward to Cloudflare (`1.1.1.1`) and Google (`8.8.8.8`).
 
 ### 2.2 Backup DNS Configuration ([`backup-dnsmasq.conf`](backup-dnsmasq.conf))
-- **Listen Address:** `10.7.16.91` bound to `en0`.
+- **Listen Address:** `10.7.16.91` bound to interface `en0`.
 - **Mirror Records:** Maintains identical authoritative mappings as the primary resolver to guarantee consistent namespace resolution regardless of which resolver answers.
 
 ### 2.3 Why `local-ttl=30` is Used
-In production architectures, DNS TTL involves a fundamental trade-off:
-1. **Low TTL (e.g. 30 seconds):** Minimizes cache staleness, enabling rapid disaster recovery, dynamic failover, and edge migrations (Extension B and Extension E). If a node fails or an IP changes, client caches expire within 30 seconds.
+In production architectures, DNS TTL involves a fundamental operational balance:
+1. **Low TTL (30 seconds):** Minimizes cache staleness, enabling rapid disaster recovery and traffic migration (demonstrated in Extensions B and E). If a node fails or an IP changes, client caches expire within 30 seconds.
 2. **High TTL (e.g. 86400 seconds / 24 hours):** Maximizes caching efficiency and reduces recursive resolver query loads, but prevents rapid operational traffic steering.
 3. **Phase 2 Choice:** `local-ttl=30` is ideal for high-availability private infrastructure: it demonstrates rapid record propagation during maintenance and tests without overwhelming the local `dnsmasq` instances.
 
@@ -50,19 +51,30 @@ In production architectures, DNS TTL involves a fundamental trade-off:
 
 ## 3. Service Lifecycle Management
 
-### 3.1 Starting `dnsmasq`
+### 3.1 Syntax Validation
+Before starting or reloading, validate the configuration syntax:
+```bash
+# On Mac 01 (or using explicit Homebrew path):
+sudo /opt/homebrew/sbin/dnsmasq --test -C 02_DNS/Phase2/primary-dnsmasq.conf
+
+# On Mac 03:
+sudo /opt/homebrew/sbin/dnsmasq --test -C 02_DNS/Phase2/backup-dnsmasq.conf
+```
+*Expected Output: `dnsmasq: syntax check OK.`*
+
+### 3.2 Starting `dnsmasq`
 On **Mac 01 (Primary DNS — Shubham)**:
 ```bash
-sudo dnsmasq -C 02_DNS/Phase2/primary-dnsmasq.conf -d
+sudo /opt/homebrew/sbin/dnsmasq -C 02_DNS/Phase2/primary-dnsmasq.conf -d
 ```
 
 On **Mac 03 (Backup DNS — Bhavya)**:
 ```bash
-sudo dnsmasq -C 02_DNS/Phase2/backup-dnsmasq.conf -d
+sudo /opt/homebrew/sbin/dnsmasq -C 02_DNS/Phase2/backup-dnsmasq.conf -d
 ```
-*(The `-d` flag keeps dnsmasq in foreground debug mode to log all incoming queries in real time. Omit `-d` to daemonize).*
+*(The `-d` flag keeps dnsmasq in foreground debug mode to log all incoming queries in real time. Omit `-d` to run in background).*
 
-### 3.2 Stopping `dnsmasq` and Verifying Port Release
+### 3.3 Stopping `dnsmasq` and Verifying Port Release
 To stop the resolver on either machine:
 ```bash
 sudo killall dnsmasq
@@ -78,7 +90,7 @@ sudo lsof -nP -iUDP:53 -iTCP:53
 
 ---
 
-## 4. Client Resolver Ordering & System Inspection
+## 4. Client Resolver Ordering (macOS)
 
 For client nodes to leverage automatic primary-to-backup failover, both resolvers must be configured in order of preference:
 
@@ -86,7 +98,7 @@ For client nodes to leverage automatic primary-to-backup failover, both resolver
 # 1. Set primary (10.7.21.236) and backup (10.7.16.91) on macOS client
 sudo networksetup -setdnsservers Wi-Fi 10.7.21.236 10.7.16.91
 
-# 2. Verify configured resolvers
+# 2. Verify configured resolvers on Wi-Fi service
 networksetup -getdnsservers Wi-Fi
 ```
 
@@ -101,7 +113,7 @@ Inspect the operating system resolver hierarchy:
 ```bash
 scutil --dns
 ```
-Expected excerpt:
+Expected excerpt under `resolver #1`:
 ```text
 resolver #1
   nameserver[0] : 10.7.21.236
@@ -115,18 +127,18 @@ resolver #1
 
 ## 5. Resolution Verification Commands
 
-### 5.1 Querying Specific Resolvers with `dig`
+### 5.1 Querying Specific Resolvers with `dig` (Normal State)
 ```bash
 # Test Primary Resolver explicitly
 dig @10.7.21.236 app.teamabs.test +noall +answer
-# Output: app.teamabs.test. 30 IN A 10.7.16.91
+# Output: app.teamabs.test. 30 IN A 10.7.9.208
 
 dig @10.7.21.236 api.teamabs.test +noall +answer
 # Output: api.teamabs.test. 30 IN A 10.7.9.208
 
 # Test Backup Resolver explicitly
 dig @10.7.16.91 app.teamabs.test +noall +answer
-# Output: app.teamabs.test. 30 IN A 10.7.16.91
+# Output: app.teamabs.test. 30 IN A 10.7.9.208
 
 dig @10.7.16.91 api.teamabs.test +noall +answer
 # Output: api.teamabs.test. 30 IN A 10.7.9.208
@@ -153,40 +165,37 @@ dig app.teamabs.test +noall +answer
    ```bash
    dig app.teamabs.test +noall +answer
    ```
-   **Observation:** The client queries the primary, encounters timeout/unreachability, and falls back to the backup resolver (`10.7.16.91`), which returns `10.7.16.91` with TTL 30.
+   **Observation:** The client attempts to query the primary, times out after the resolver retry threshold, and falls back to the backup resolver (`10.7.16.91`), which returns `10.7.9.208` with TTL 30.
 4. **End-to-End Application Validation:**
    ```bash
    curl -i http://app.teamabs.test:8080/api/status
    ```
-   HTTP 200 OK is received through the standby edge without client interruption.
+   HTTP 200 OK is received without client failure.
 5. **Restore Primary Resolver:**
    On Mac 01, restart `dnsmasq`:
    ```bash
-   sudo dnsmasq -C 02_DNS/Phase2/primary-dnsmasq.conf -d
+   sudo /opt/homebrew/sbin/dnsmasq -C 02_DNS/Phase2/primary-dnsmasq.conf -d
    ```
    Resolution immediately resumes using the restored primary resolver.
 
 ---
 
-## 7. Extension B: DNS TTL Dynamics & macOS Resolver Limitation
+## 7. Extension B: DNS TTL Dynamics & Observed Client Cache Behavior
 
 ### Configured TTL Verification
 Executing `dig @10.7.21.236 app.teamabs.test` confirms:
 ```text
 ;; ANSWER SECTION:
-app.teamabs.test.    30    IN    A    10.7.16.91
+app.teamabs.test.    30    IN    A    10.7.9.208
 ```
 
-### Client Cache Invalidation
-To purge local macOS client DNS cache:
-```bash
-sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder
-```
-
-### Observed macOS Resolver Limitation
-> [!WARNING]
-> **macOS DNS Cache Dynamics:**
-> In macOS, `mDNSResponder` handles both unicast DNS and Multicast DNS (Bonjour). When multiple resolvers are configured (`scutil --dns`), macOS does not always execute strict serial waterfall fallbacks or hold cached records until the exact second of TTL expiration.
-> - Under certain network conditions, macOS races queries across configured resolvers or revalidates records proactively.
-> - When server records are updated, standard system queries may retrieve the newly advertised record immediately rather than demonstrating stale cache retention for the remaining TTL window.
-> - This is a documented design characteristic of the Apple Darwin unicast resolution stack and does not reflect a defect in `dnsmasq` or the network configuration.
+### Controlled Record Modification & Client Cache Observation
+1. During Extension B, the `app.teamabs.test` record was modified to test cache invalidation:
+   - Initial query: `10.7.9.208`.
+   - Record modified on DNS server to `10.7.16.91`.
+   - Client observed cached resolution transition recorded at `08:49:29`.
+2. To manually flush local macOS client DNS cache during testing:
+   ```bash
+   sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder
+   ```
+3. Following all tests, records on both servers were restored to `10.7.9.208`.

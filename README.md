@@ -39,16 +39,17 @@ The project demonstrates:
 ### Project Domain Names & DNS Mappings
 
 > [!IMPORTANT]
-> **Distinction Between Phase 1 and Phase 2 DNS Mappings:**
-> - **Phase 1 Baseline Mapping:**
+> **Phase 2 DNS Normal State vs. Extension E Migration:**
+> - **Normal Production Mapping (Restored):**
 >   - `app.teamabs.test -> 10.7.9.208` (Atharva — Mac 02 Primary Edge)
 >   - `api.teamabs.test -> 10.7.9.208` (Atharva — Mac 02 Primary Edge)
->   - Configured in [`02_DNS/dnsmasq.conf`](02_DNS/dnsmasq.conf)
-> - **Phase 2 Restored Mapping:**
->   - `app.teamabs.test -> 10.7.16.91` (Bhavya — Mac 03 Standby Edge)
->   - `api.teamabs.test -> 10.7.9.208` (Atharva — Mac 02 Primary Edge)
 >   - Authoritative `local-ttl=30` (30 seconds)
->   - Deployed in `02_DNS/Phase2/` (`primary-dnsmasq.conf` and `backup-dnsmasq.conf`)
+>   - Active in [`02_DNS/Phase2/primary-dnsmasq.conf`](02_DNS/Phase2/primary-dnsmasq.conf) and [`02_DNS/Phase2/backup-dnsmasq.conf`](02_DNS/Phase2/backup-dnsmasq.conf).
+> - **Temporary Extension E Migration State:**
+>   - During the Extension E migration experiment only, `app.teamabs.test` was temporarily redirected to Bhavya's Standby Edge (`10.7.16.91`). Following successful verification of the client transition, the record was restored to `10.7.9.208`.
+> - **Verified Client Resolver Order (Atharva — Mac 02):**
+>   1. Primary: `10.7.21.236` (Mac 01)
+>   2. Backup: `10.7.16.91` (Mac 03)
 
 ---
 
@@ -82,13 +83,13 @@ flowchart TD
         PF3 --> BackB
     end
 
-    Client -->|"DNS Query"| PriDNS
+    Client -->|"DNS Query (UDP 53)"| PriDNS
     Client -.->|"DNS Failover (Ext A)"| BkpDNS
-    Client -->|"HTTPS :8443 (api.teamabs.test)"| PriEdge
-    Client -->|"HTTPS :8443 (app.teamabs.test)"| StdEdge
+    Client -->|"Normal HTTPS :8443 (app & api)"| PriEdge
+    Client -.->|"Standby Edge Failover (Ext E)"| StdEdge
 
-    PriEdge -->|"Proxy Traffic"| PF1
-    PriEdge -->|"Proxy Traffic"| PF3
+    PriEdge -->|"Proxy Traffic (LAN)"| PF1
+    PriEdge -->|"Proxy Traffic (LAN)"| PF3
 
     StdEdge -->|"Proxy (Ext C exception)"| PF1
     StdEdge -->|"Local Proxy"| BackB
@@ -113,11 +114,11 @@ flowchart TD
 
 | Extension | Title | Core Architectural Achievement | Key Test & Verification | Status |
 |---|---|---|---|---|
-| **Extension A** | Backup DNS Failover | Dual redundant DNS resolvers (Mac 01 primary, Mac 03 backup) | Primary DNS killed; client seamlessly queried backup; application continued without interruption | **100% Verified** |
-| **Extension B** | DNS TTL & Propagation | Authoritative 30s TTL (`local-ttl=30`) and dynamic record alteration | Configured 30s TTL verified in answers; record modified, flushed, and restored. Client-side stale cache holding limitation accurately documented | **Verified (with limitation)** |
-| **Extension C** | Origin Firewall Isolation | Layer 4 host shielding via macOS Packet Filter (`pf`) anchors | Raw client access to origin ports blocked; authorized reverse proxies allowed. Bhavya-to-Backend-A standby exception documented | **100% Verified** |
-| **Extension D** | Backend High Availability | Dynamic health detection in Nginx (`max_fails=1 fail_timeout=5s`) | Backend A stopped; Nginx automatically rerouted 100% of requests to Backend B with zero dropped requests; round-robin auto-recovered | **100% Verified** |
-| **Extension E** | Edge Reverse Proxy Migration | Active-standby physical edge failover across hardware | Standby Nginx edge verified on Bhavya with valid TLS; primary edge stopped; traffic served via standby edge | **100% Verified** |
+| **Extension A** | Backup DNS Failover | Dual redundant DNS resolvers (Mac 01 primary, Mac 03 backup) | Primary DNS stopped; client queried backup resolver on Mac 03; application requests completed successfully | **Verified** |
+| **Extension B** | DNS TTL & Propagation | Authoritative 30s TTL (`local-ttl=30`) and dynamic record alteration | Configured 30s TTL verified via `dig` and Wireshark; record modified, flushed, and restored. Client-side transition recorded at 08:49:29 | **Verified** |
+| **Extension C** | Origin Firewall Isolation | Layer 4 host shielding via macOS Packet Filter (`pf`) anchors | Direct client access to origin ports blocked; authorized edge proxies allowed. Bhavya-to-Backend-A standby exception verified. Fourth-device test not performed (no fourth device available) | **Verified (with limitation)** |
+| **Extension D** | Backend High Availability | Dynamic health detection in Nginx (`max_fails=1 fail_timeout=5s`) | Backend A stopped; Nginx automatically diverted requests to Backend B; round-robin recovered upon Backend A restart | **Verified** |
+| **Extension E** | Edge Reverse Proxy Migration | Active-standby physical edge failover across hardware | Standby Nginx edge verified on Bhavya with valid TLS; 5s polling loop recorded transition from primary (.208, 10:18:21–10:18:55) to standby (.91, 10:19:00 onward) with HTTP 200 responses throughout | **Verified** |
 
 > [!NOTE]
 > **Faculty Viva Note Regarding Extension F:**
@@ -194,12 +195,12 @@ TeamABS/
 │   └── README.md                       # PF configuration and testing guide
 │
 ├── 11_Phase2_Evidence/                 # Phase 2 experimental logs and capture indices
-│   ├── Extension_A_Backup_DNS/         # (.gitkeep)
-│   ├── Extension_B_DNS_TTL/            # (.gitkeep)
-│   ├── Extension_C_Firewall/           # (.gitkeep)
-│   ├── Extension_D_Backend_Failover/   # (.gitkeep)
-│   ├── Extension_E_Edge_Migration/     # (.gitkeep)
-│   └── Wireshark/                      # (.gitkeep)
+│   ├── Extension_A_Backup_DNS/         # Primary DNS failover verification screenshots
+│   ├── Extension_B_DNS_TTL/            # 30s TTL and dynamic record change screenshots
+│   ├── Extension_C_Firewall/           # PF firewall origin isolation screenshots
+│   ├── Extension_D_Backend_Failover/   # Backend health check failover screenshots
+│   ├── Extension_E_Edge_Migration/     # Active-standby edge migration screenshots
+│   └── Wireshark/                      # Wireshark DNS TTL packet capture evidence
 │
 └── 12_Presentation/                    # Evaluation slide deck outline (.gitkeep)
 ```

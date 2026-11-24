@@ -16,3 +16,4 @@ subjectAltName = @alt_names
 
 [alt_names]
 DNS.1 = app.teamabs.test
+DNS.2 = api.teamabs.test

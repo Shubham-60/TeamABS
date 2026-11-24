@@ -11,7 +11,7 @@ In production enterprise architectures, backend microservices and origin databas
 2. **Reverse Proxy Load Balancing & Caching:** Preventing Nginx from enforcing rate limits, request caching, and health detection.
 3. **Auditability & WAF Policies:** Allowing uninspected payloads to hit backend application logic.
 
-In Phase 2, macOS's native kernel packet filter (`pf`) is utilized to enforce strict Layer 4 ingress isolation on origin ports:
+In Phase 2, macOS's native kernel packet filter (`pf`) is utilized to enforce Layer 4 ingress isolation on origin ports:
 - **Mac 01 (Backend A - Port 3001):** Restricted exclusively to authorized edge reverse proxies.
 - **Mac 03 (Backend B - Port 3002):** Restricted exclusively to Atharva's primary edge and local loopback.
 
@@ -37,6 +37,7 @@ pass in quick on lo0 inet proto tcp from any to any port 3002
 pass in quick on en0 inet proto tcp from 10.7.9.208 to 10.7.16.91 port 3002
 block in quick on en0 inet proto tcp from any to 10.7.16.91 port 3002
 ```
+*(Note: Loopback traffic on macOS stays on `lo0` and is not filtered by `en0` rules. The explicit `lo0` rule ensures local standby Nginx access to Backend B is unambiguously permitted).*
 
 ---
 
@@ -115,13 +116,17 @@ sudo pfctl -d
 
 ### 5.1 Verification Matrix
 
-| Source Host | Destination Node | Target Port | PF Rule Evaluation | Observed Result |
-|---|---|---|---|---|
-| **Atharva (`10.7.9.208`)** | Mac 03 (`10.7.16.91`) | `3002` (Backend B) | **ALLOWED** | `HTTP 200 OK` (TCP connection established) |
-| **Shubham (`10.7.21.236`)** | Mac 03 (`10.7.16.91`) | `3002` (Backend B) | **BLOCKED** | Connection timed out / packet dropped by PF |
-| **Atharva (`10.7.9.208`)** | Mac 01 (`10.7.21.236`) | `3001` (Backend A) | **ALLOWED** | `HTTP 200 OK` (TCP connection established) |
-| **Bhavya (`10.7.16.91`)** | Mac 01 (`10.7.21.236`) | `3001` (Backend A) | **ALLOWED** | `HTTP 200 OK` (Standby edge proxy route) |
-| **External Client** | Mac 01 (`10.7.21.236`) | `3001` (Backend A) | **BLOCKED** | `Connection timed out` |
+| Source Host | Destination Node | Target Port | PF Rule Evaluation | Observed Result | Verification Status |
+|---|---|---|---|---|---|
+| **Atharva (`10.7.9.208`)** | Mac 03 (`10.7.16.91`) | `3002` (Backend B) | **ALLOWED** | `HTTP 200 OK` (TCP connection established) | **VERIFIED** |
+| **Shubham (`10.7.21.236`)** | Mac 03 (`10.7.16.91`) | `3002` (Backend B) | **BLOCKED** | Connection timed out / packet dropped by PF | **VERIFIED** |
+| **Atharva (`10.7.9.208`)** | Mac 01 (`10.7.21.236`) | `3001` (Backend A) | **ALLOWED** | `HTTP 200 OK` (TCP connection established) | **VERIFIED** |
+| **Bhavya (`10.7.16.91`)** | Mac 01 (`10.7.21.236`) | `3001` (Backend A) | **ALLOWED** | `HTTP 200 OK` (Standby edge proxy route) | **VERIFIED** |
+| **Fourth / External Device** | Mac 01 (`10.7.21.236`) | `3001` (Backend A) | **BLOCKED** | *Untested in live LAN* | **NOT PERFORMED – No fourth device available** |
+
+> [!IMPORTANT]
+> **Fourth-Device Test Limitation:**
+> In our private subnet setup, exactly three physical laptops were available. The blocking behavior of `block in quick on en0` was successfully proven on Bhavya's Mac (`10.7.16.91:3002`) by initiating an unauthorized connection from Shubham (`10.7.21.236`), which was dropped and timed out. However, a separate fourth-device test to independently attempt an unauthorized connection to Shubham's Backend A on port `3001` was **NOT PERFORMED** because no fourth device existed on the subnet. This limitation is explicitly documented and must not be claimed as verified.
 
 ### 5.2 Test Commands
 
@@ -134,15 +139,11 @@ curl -i --connect-timeout 3 http://10.7.21.236:3001/api/status
 curl -i --connect-timeout 3 http://10.7.16.91:3002/api/status
 ```
 
-**2. Blocked Direct Client Access (from Client Workstation):**
+**2. Blocked Non-Edge Access (Tested from Shubham to Bhavya's Backend B):**
 ```bash
-# Attempt to bypass proxy to Backend A (should hang and time out)
-curl -i --connect-timeout 3 http://10.7.21.236:3001/api/status
-# Output: curl: (28) Failed to connect to 10.7.21.236 port 3001: Operation timed out
-
-# Attempt to bypass proxy to Backend B (should hang and time out)
+# Attempt to reach Backend B from Shubham's Mac (should hang and time out)
 curl -i --connect-timeout 3 http://10.7.16.91:3002/api/status
-# Output: curl: (28) Failed to connect to 10.7.16.91 port 3002: Operation timed out
+# Observed Result: curl: (28) Failed to connect to 10.7.16.91 port 3002: Operation timed out
 ```
 
 **3. Verified Proxy Access via Edge:**

@@ -34,7 +34,7 @@ In Phase 2, the single-path architecture of Phase 1 was transformed into an acti
    - **Standby Edge:** Mac 03 (`10.7.16.91`) terminating HTTP (`:8080`) and HTTPS (`:8443`) with mirrored SSL certificates.
 3. **Dynamic Upstream Failover Tier (Extension D):**
    - Nginx upstream `teamabs_backends` configured with `max_fails=1 fail_timeout=5s`.
-   - If Backend A (`10.7.21.236:3001`) fails, traffic is transparently diverted to Backend B (`10.7.16.91:3002`) in $< 50\text{ ms}$.
+   - If Backend A (`10.7.21.236:3001`) fails, traffic is dynamically diverted to Backend B (`10.7.16.91:3002`).
 4. **Kernel Firewall Isolation Tier (Extension C):**
    - macOS Packet Filter (`pf`) anchors block raw client connections to origin ports `3001` and `3002`.
    - Authorized routes: Atharva (`10.7.9.208`) can access both backends; Bhavya (`10.7.16.91`) can access Backend A to facilitate standby edge reverse proxying.
@@ -47,7 +47,7 @@ In Phase 2, the single-path architecture of Phase 1 was transformed into an acti
 |---|---|---|
 | **DNS Resolvers** | Single resolver on Mac 01 (`10.7.21.236`) | Active-passive dual resolvers on Mac 01 (`.236`) and Mac 03 (`.91`) |
 | **DNS TTL** | Default local TTL | Authoritative `local-ttl=30` (30 seconds) |
-| **`app.teamabs.test` Mapping** | `10.7.9.208` (Mac 02 Primary Edge) | `10.7.16.91` (Mac 03 Standby Edge) |
+| **`app.teamabs.test` Mapping** | `10.7.9.208` (Mac 02 Primary Edge) | `10.7.9.208` (Normal); temporarily `10.7.16.91` during Ext E |
 | **`api.teamabs.test` Mapping** | `10.7.9.208` (Mac 02 Primary Edge) | `10.7.9.208` (Mac 02 Primary Edge) |
 | **Edge Gateways** | Single Nginx instance on Mac 02 | Primary edge on Mac 02; Standby edge on Mac 03 |
 | **Backend Health Checks** | Static Round-Robin (no timeout policy) | Dynamic detection: `max_fails=1 fail_timeout=5s` |
@@ -55,7 +55,7 @@ In Phase 2, the single-path architecture of Phase 1 was transformed into an acti
 
 ---
 
-## 4. Application Request Flow (Phase 2)
+## 4. Application Request Flow (Phase 2 Normal State)
 
 ```mermaid
 sequenceDiagram
@@ -63,17 +63,17 @@ sequenceDiagram
     actor Client as Client Workstation
     participant PriDNS as Mac 01: Primary DNS (:53)
     participant BkpDNS as Mac 03: Backup DNS (:53)
-    participant Edge as Mac 02 / Mac 03 Nginx Edge (:8443)
+    participant Edge as Mac 02: Primary Nginx Edge (:8443)
     participant PF as Mac 01 / Mac 03 PF Firewall
     participant Backend as Backend Pool (:3001 / :3002)
 
     Note over Client,PriDNS: 1. Name Resolution
     Client->>PriDNS: DNS Query A app.teamabs.test
     alt Primary DNS Online
-        PriDNS-->>Client: Answer: 10.7.16.91 (TTL=30s)
+        PriDNS-->>Client: Answer: 10.7.9.208 (TTL=30s)
     else Primary DNS Offline (Extension A)
         Client->>BkpDNS: DNS Query A app.teamabs.test (Timeout Fallback)
-        BkpDNS-->>Client: Answer: 10.7.16.91 (TTL=30s)
+        BkpDNS-->>Client: Answer: 10.7.9.208 (TTL=30s)
     end
 
     Note over Client,Edge: 2. Layer 4 & Layer 7 Handshakes
